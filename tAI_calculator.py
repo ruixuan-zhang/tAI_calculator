@@ -23,13 +23,13 @@ class tAI_Calculator:
     crick_dict = {
         # key: codon ; value : anticodon ; direction : 5 -> 3
         'ATA': 'TAT', 'ATC': 'GAT', 'ATT': 'AAT', 'ATG': 'CAT',
-        'ACA': 'TGT', 'ACC': 'GGT', 'ACG': 'CGT', 'ACT': 'AGT',
-        'AAC': 'GTT', 'AAT': 'ATT', 'AAA': 'TTT', 'AAG': 'CTT',
-        'AGC': 'GCT', 'AGT': 'ACT', 'AGA': 'TCT', 'AGG': 'CCT',
-        'CTA': 'TAG', 'CTC': 'AAG', 'CTG': 'CAG', 'CTT': 'AAG',
-        'CCA': 'TGG', 'CCC': 'AGG', 'CCG': 'CGG', 'CCT': 'AGG',
+        'ACA': 'TGT', 'ACC': 'GGT', 'ACT': 'AGT', 'ACG': 'CGT',
+        'AAA': 'TTT', 'AAC': 'GTT', 'AAT': 'ATT', 'AAG': 'CTT',
+        'AGA': 'TCT', 'AGC': 'GCT', 'AGT': 'ACT', 'AGG': 'CCT',
+        'CTA': 'TAG', 'CTC': 'GAG', 'CTG': 'CAG', 'CTT': 'AAG',
+        'CCA': 'TGG', 'CCC': 'GGG', 'CCG': 'CGG', 'CCT': 'AGG',
         'CAC': 'GTG', 'CAT': 'ATG', 'CAA': 'TTG', 'CAG': 'CTG',
-        'CGA': 'TCG', 'CGC': 'ACG', 'CGG': 'CCG', 'CGT': 'TCG',
+        'CGA': 'TCG', 'CGC': 'GCG', 'CGG': 'CCG', 'CGT': 'ACG',
         'GTA': 'TAC', 'GTC': 'GAC', 'GTG': 'CAC', 'GTT': 'AAC',
         'GCA': 'TGC', 'GCC': 'GGC', 'GCG': 'CGC', 'GCT': 'AGC',
         'GAC': 'GTC', 'GAT': 'ATC', 'GAA': 'TTC', 'GAG': 'CTC',
@@ -90,6 +90,7 @@ class tAI_Calculator:
                 self.w_dict[codon] = min(1, self.W_dict[codon] / W_max)
         
         w_mean = np.average(list(self.w_dict.values()))
+        
         for codon in list(self.w_dict.keys()):
             if self.w_dict[codon] == 0:
                 self.w_dict[codon] = w_mean
@@ -111,8 +112,8 @@ class tAI_Calculator:
                 # self.error_target_list.append(gene)
                 continue
             else:
-                codon_counter = defaultdict(int)
-                for i in range(0, len(sequences), 3):
+                codon_counter = defaultdict(int) # every sequence will have a codon counter, saving the frequency of each codon
+                for i in range(0, len(sequences)-3, 3): # remove the last stop codon 
                     codon_code = sequences[i: i+3]
                     codon_counter[codon_code] += 1
                 
@@ -120,6 +121,7 @@ class tAI_Calculator:
                     if codon_counter[codon] > 0:
                         product_w *= self.w_dict[codon] ** codon_counter[codon]
                         n_codons += codon_counter[codon]
+
 
                 tAI = product_w ** (1/n_codons)
                 self.tAI_dict[gene] = tAI
