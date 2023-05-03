@@ -41,6 +41,27 @@ class tAI_Calculator:
         # Stop codons: 'TAA': 'TTA', 'TAG': 'CTA','TGA': 'TCA', 
     }
 
+    crick_dict = {
+        # key: codon ; value : anticodon ; direction : 5 -> 3
+        'ATA': 'TAT', 'ATC': 'GAT', 'ATT': 'AAT', 'ATG': 'CAT',
+        'ACA': 'TGT', 'ACC': 'GGT', 'ACT': 'AGT', 'ACG': 'CGT',
+        'AAA': 'TTT', 'AAC': 'GTT', 'AAT': 'ATT', 'AAG': 'CTT',
+        'AGA': 'TCT', 'AGC': 'GCT', 'AGT': 'ACT', 'AGG': 'CCT',
+        'CTA': 'TAG', 'CTC': 'GAG', 'CTT': 'AAG', 'CTG': 'CAG',
+        'CCA': 'TGG', 'CCC': 'GGG', 'CCT': 'AGG', 'CCG': 'CGG',
+        'CAA': 'TTG', 'CAC': 'GTG', 'CAT': 'ATG', 'CAG': 'CTG',
+        'CGA': 'TCG', 'CGC': 'GCG', 'CGT': 'ACG', 'CGG': 'CCG',
+        'GTA': 'TAC', 'GTC': 'GAC', 'GTT': 'AAC', 'GTG': 'CAC',
+        'GCA': 'TGC', 'GCC': 'GGC', 'GCT': 'AGC', 'GCG': 'CGC',
+        'GAA': 'TTC', 'GAC': 'GTC', 'GAT': 'ATC', 'GAG': 'CTC',
+        'GGA': 'TCC', 'GGC': 'GCC', 'GGT': 'ACC', 'GGG': 'CCC',
+        'TTA': 'TAA', 'TCC': 'GAA', 'TCT': 'AGA', 'TTG': 'CAA',        
+        'TCA': 'TGA', 'TTC': 'GAA', 'TTT': 'AAA', 'TCG': 'CGA',
+                      'TAC': 'GTA', 'TAT': 'ATA',  
+                      'TGC': 'GCA', 'TGT': 'ACA', 'TGG': 'CCA'
+        # Stop codons: 'TAA': 'TTA', 'TAG': 'CTA','TGA': 'TCA', 
+    }
+
     def __init__(self, gene_list, fasta_file:str , trna_conc, obs_exp_df, initial_parameter=None):
         self.selected_genes = gene_list
         self.fasta_file = fasta_file # This file should save the sequence in fasta format
