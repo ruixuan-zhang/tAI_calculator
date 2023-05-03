@@ -20,26 +20,11 @@ class tAI_Calculator:
     # |     NNG     |     NNG      |     CNN      |      UNN      |    G : U    |
     # |     NNT     |     NNU      |     ANN      |      GNN      |    U : G    | 
 
-    crick_dict = {
-        # key: codon ; value : anticodon ; direction : 5 -> 3
-        'ATA': 'TAT', 'ATC': 'GAT', 'ATT': 'AAT', 'ATG': 'CAT',
-        'ACA': 'TGT', 'ACC': 'GGT', 'ACT': 'AGT', 'ACG': 'CGT',
-        'AAA': 'TTT', 'AAC': 'GTT', 'AAT': 'ATT', 'AAG': 'CTT',
-        'AGA': 'TCT', 'AGC': 'GCT', 'AGT': 'ACT', 'AGG': 'CCT',
-        'CTA': 'TAG', 'CTC': 'GAG', 'CTG': 'CAG', 'CTT': 'AAG',
-        'CCA': 'TGG', 'CCC': 'GGG', 'CCG': 'CGG', 'CCT': 'AGG',
-        'CAC': 'GTG', 'CAT': 'ATG', 'CAA': 'TTG', 'CAG': 'CTG',
-        'CGA': 'TCG', 'CGC': 'GCG', 'CGG': 'CCG', 'CGT': 'ACG',
-        'GTA': 'TAC', 'GTC': 'GAC', 'GTG': 'CAC', 'GTT': 'AAC',
-        'GCA': 'TGC', 'GCC': 'GGC', 'GCG': 'CGC', 'GCT': 'AGC',
-        'GAC': 'GTC', 'GAT': 'ATC', 'GAA': 'TTC', 'GAG': 'CTC',
-        'GGA': 'TCC', 'GGC': 'GCC', 'GGG': 'CCC', 'GGT': 'ACC',
-        'TCA': 'TGA', 'TCC': 'GGA', 'TCG': 'CGA', 'TCT': 'AGA',
-        'TTC': 'GAA', 'TTT': 'AAA', 'TTA': 'TAA', 'TTG': 'CAA',
-        'TAC': 'GTA', 'TAT': 'ATA', 'TGC': 'GCA', 'TGT': 'ACA', 
-        'TGG': 'CCA'
-        # Stop codons: 'TAA': 'TTA', 'TAG': 'CTA','TGA': 'TCA', 
-    }
+    # example
+    # |     ATA     |     AUA      |     TAT      |      AAT      |    A : I    |
+    # W_(AUA) = tGCN_(TAT) + (1-S(A:A)) * tGCN_(AAT) 
+    # |     GTC     |     GUC      |     GAC      |      AAC      |    C : I    |
+    # W_(GUC) = tGCN_(GAC) + (1-S(C:A)) * tGCN_(AAC) 
 
     crick_dict = {
         # key: codon ; value : anticodon ; direction : 5 -> 3
@@ -74,7 +59,7 @@ class tAI_Calculator:
         else:
             self.initial_parameter = [0.5, 0.5, 0.5, 0.5]
         # the parameter sets means the parameter of constraint / stability of wobble pairing
-        # stands for A, C, G, T in the 3rd position of the codon 
+        # stands for A:I, C:I, G:U, T:G in the 3rd position of the codon 
         # i.e. the first 0.5 represent the staibility between NNA and ANN is 0.5 
         
     def W_dict(self):
@@ -142,7 +127,6 @@ class tAI_Calculator:
                     if codon_counter[codon] > 0:
                         product_w *= self.w_dict[codon] ** codon_counter[codon]
                         n_codons += codon_counter[codon]
-
 
                 tAI = product_w ** (1/n_codons)
                 self.tAI_dict[gene] = tAI
