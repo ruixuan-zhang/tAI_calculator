@@ -5,7 +5,7 @@ from scipy.stats import spearmanr
 import pandas as pd
 from Bio import SeqIO
 
-class tAI_Calculator:
+class tAI_calculator:
     # based on wobble pairing: A-to-I editing
     # I - U
     # I - A
@@ -20,92 +20,107 @@ class tAI_Calculator:
     # |     NNG     |     NNG      |     CNN      |      UNN      |    G : U    |
     # |     NNT     |     NNU      |     ANN      |      GNN      |    U : G    | 
 
-    # example
-    # |     ATA     |     AUA      |     TAT      |      AAT      |    A : I    |
-    # W_(AUA) = tGCN_(TAT) + (1-S(A:A)) * tGCN_(AAT) 
-    # |     GTC     |     GUC      |     GAC      |      AAC      |    C : I    |
-    # W_(GUC) = tGCN_(GAC) + (1-S(C:A)) * tGCN_(AAC) 
-
     crick_dict = {
         # key: codon ; value : anticodon ; direction : 5 -> 3
         'ATA': 'TAT', 'ATC': 'GAT', 'ATT': 'AAT', 'ATG': 'CAT',
         'ACA': 'TGT', 'ACC': 'GGT', 'ACT': 'AGT', 'ACG': 'CGT',
         'AAA': 'TTT', 'AAC': 'GTT', 'AAT': 'ATT', 'AAG': 'CTT',
         'AGA': 'TCT', 'AGC': 'GCT', 'AGT': 'ACT', 'AGG': 'CCT',
-        'CTA': 'TAG', 'CTC': 'GAG', 'CTT': 'AAG', 'CTG': 'CAG',
-        'CCA': 'TGG', 'CCC': 'GGG', 'CCT': 'AGG', 'CCG': 'CGG',
-        'CAA': 'TTG', 'CAC': 'GTG', 'CAT': 'ATG', 'CAG': 'CTG',
-        'CGA': 'TCG', 'CGC': 'GCG', 'CGT': 'ACG', 'CGG': 'CCG',
-        'GTA': 'TAC', 'GTC': 'GAC', 'GTT': 'AAC', 'GTG': 'CAC',
-        'GCA': 'TGC', 'GCC': 'GGC', 'GCT': 'AGC', 'GCG': 'CGC',
-        'GAA': 'TTC', 'GAC': 'GTC', 'GAT': 'ATC', 'GAG': 'CTC',
-        'GGA': 'TCC', 'GGC': 'GCC', 'GGT': 'ACC', 'GGG': 'CCC',
-        'TTA': 'TAA', 'TCC': 'GAA', 'TCT': 'AGA', 'TTG': 'CAA',        
-        'TCA': 'TGA', 'TTC': 'GAA', 'TTT': 'AAA', 'TCG': 'CGA',
-                      'TAC': 'GTA', 'TAT': 'ATA',  
-                      'TGC': 'GCA', 'TGT': 'ACA', 'TGG': 'CCA'
+        
+        'CTA': 'TAG', 'CTC': 'GAG', 'CTG': 'CAG', 'CTT': 'AAG',
+        'CCA': 'TGG', 'CCC': 'GGG', 'CCG': 'CGG', 'CCT': 'AGG',
+        'CAA': 'TTG', 'CAC': 'GTG', 'CAG': 'CTG', 'CAT': 'ATG', 
+        'CGA': 'TCG', 'CGC': 'GCG', 'CGG': 'CCG', 'CGT': 'ACG',
+        
+        'GTA': 'TAC', 'GTC': 'GAC', 'GTG': 'CAC', 'GTT': 'AAC',
+        'GCA': 'TGC', 'GCC': 'GGC', 'GCG': 'CGC', 'GCT': 'AGC',
+        'GAA': 'TTC', 'GAC': 'GTC', 'GAG': 'CTC', 'GAT': 'ATC', 
+        'GGA': 'TCC', 'GGC': 'GCC', 'GGG': 'CCC', 'GGT': 'ACC',
+
+        'TTA': 'TAA', 'TTC': 'GAA', 'TTG': 'CAA', 'TTT': 'AAA',  
+        'TCA': 'TGA', 'TCC': 'GGA', 'TCG': 'CGA', 'TCT': 'AGA',
+        'TAA': 'TTA', 'TAC': 'GTA', 'TAG': 'CTA', 'TAT': 'ATA',
+        'TGA': 'TCA', 'TGC': 'GCA', 'TGG': 'CCA', 'TGT': 'ACA'
         # Stop codons: 'TAA': 'TTA', 'TAG': 'CTA','TGA': 'TCA', 
     }
 
     def __init__(self, gene_list, fasta_file:str , trna_conc, obs_exp_df, initial_parameter=None):
-        self.selected_genes = gene_list
-        self.fasta_file = fasta_file # This file should save the sequence in fasta format
-        self.trna_conc = trna_conc # tRNA concentration , can be tRNA gene copy number (tGCN) or TPM of tRNA by mapping 
-        self.obs_exp_df = obs_exp_df # observed expression level such as proteomics, Ribo-seq, RNA-seq
-        self.parameter_set = None # parameter_set for estimate the constraint parameter
-        self.crick_dict = self.crick_dict
+        self.selected_genes = gene_list     # a python list for calculating tAI
+        self.fasta_file = fasta_file        # a path to the nucleotide fasta file for the gene list
+        self.trna_conc = trna_conc          # a python dictionary saving the tRNA concentration, can be tRNA gene copy number (tGCN) or TPM of tRNA by mapping 
+        self.obs_exp_df = obs_exp_df        # a pandas dataframe saving the observed expression level, such as proteomics, Ribo-seq, RNA-seq
+        self.parameter_set = None           # a python list saving the parameter_set for estimate the constraint parameter, default is None
+        self.crick_dict = self.crick_dict   # a python dictionary saving the pairing rules between codon and anticodon 
         if initial_parameter is not None:
             self.initial_parameter = initial_parameter
         else:
             self.initial_parameter = [0.5, 0.5, 0.5, 0.5]
+            
         # the parameter sets means the parameter of constraint / stability of wobble pairing
-        # stands for A:I, C:I, G:U, T:G in the 3rd position of the codon 
+        # stands for A, C, G, T in the 3rd position of the codon 
         # i.e. the first 0.5 represent the staibility between NNA and ANN is 0.5 
         
     def W_dict(self):
         # this function aims to calculate a dictionary of absolute adaptiveness
         # self.parameter_set = {"A": self.initial_parameter[0], "C": self.initial_parameter[1], "G": self.initial_parameter[2], "T": self.initial_parameter[3]}
         self.W_dict = defaultdict(float)
+
         for codon in list(self.crick_dict.keys()):
-            wobble_base = codon[2]
-            crick_pair = self.crick_dict[codon]
-            if wobble_base == "A":
-                wobble_pair = "A" + crick_pair[1:3]
-                s = self.initial_parameter[0]
-            elif wobble_base == "C":
-                wobble_pair = "A" + crick_pair[1:3]
-                s = self.initial_parameter[1]
-            elif wobble_base == "G":
-                wobble_pair == "T" + crick_pair[1:3]
-                s = self.initial_parameter[2]
-            elif wobble_base == "T":
-                wobble_pair = "G" + crick_pair[1:3]
-                s = self.initial_parameter[3]
-            
-            W = self.trna_conc[crick_pair] + (1-s) * self.trna_conc[wobble_pair]
-            self.W_dict[codon] = W
+            # if the codon is stop codon, give the adaptiveness to them as 0 
+            if codon in ["TAA", "TGA", "TAG"]:
+                self.W_dict[codon] = 0
+
+            # else if not stop codon
+            else: 
+                wobble_base = codon[2]
+                crick_pair = self.crick_dict[codon]
+                if wobble_base == "A":
+                    wobble_pair = "A" + crick_pair[1:3]
+                    s = self.initial_parameter[0]
+                elif wobble_base == "C":
+                    wobble_pair = "A" + crick_pair[1:3]
+                    s = self.initial_parameter[1]
+                elif wobble_base == "G":
+                    wobble_pair = "T" + crick_pair[1:3]
+                    s = self.initial_parameter[2]
+                elif wobble_base == "T":
+                    wobble_pair = "G" + crick_pair[1:3]
+                    s = self.initial_parameter[3]
+                
+                W = self.trna_conc[crick_pair] + (1-s) * self.trna_conc[wobble_pair]
+                self.W_dict[codon] = W
+
         return self.W_dict
     
     def w_dict(self):
         self.w_dict = defaultdict(float)
         # W_max = max(self.W_dict.values()) # Used in dos reis 2004
+        # W_max = mean(self.W_dict.values()[0:3])
         W_max = gmean(sorted(self.W_dict.values(), reverse=True)[0:3]) # Take the geometric mean of the top 3 tRNA concentration
 
         for codon in list(self.crick_dict.keys()):
-            if self.W_dict[codon] != 0:
-                self.w_dict[codon] = min(1, self.W_dict[codon] / W_max)
-        
-        w_mean = np.average(list(self.w_dict.values()))
-        
+            # if codon is stop codon, gave them relative adaptiveness of 0
+            if codon in ["TAA", "TGA", "TAG"]:
+                self.w_dict[codon] = 0
+            # if codon is not stop codon and not zero , gave them as W[codon] / W_max
+            else:
+                if self.W_dict[codon] != 0:
+                    self.w_dict[codon] = min(1, self.W_dict[codon] / W_max)
+
+        non_zero_values = [v for v in self.w_dict.values() if v != 0]
+        w_gmean = gmean(non_zero_values)
+#         w_mean = np.average(list(self.w_dict.values())) # this mean need to be modified 
+
         for codon in list(self.w_dict.keys()):
-            if self.w_dict[codon] == 0:
-                self.w_dict[codon] = w_mean
+            if self.W_dict[codon] == 0:
+                self.w_dict[codon] = w_gmean
  
         return self.w_dict
     
     def tAI_calculate(self):
         self.tAI_dict = defaultdict(float)
         # self.error_target_list = []
+
         target_records_dict = SeqIO.to_dict(SeqIO.parse(self.fasta_file, "fasta"))
 
         for gene in self.selected_genes:
@@ -118,15 +133,18 @@ class tAI_Calculator:
                 # self.error_target_list.append(gene)
                 continue
             else:
-                codon_counter = defaultdict(int) # every sequence will have a codon counter, saving the frequency of each codon
-                for i in range(0, len(sequences)-3, 3): # remove the last stop codon 
+                codon_counter = defaultdict(int)
+                for i in range(3, len(sequences), 3):
                     codon_code = sequences[i: i+3]
                     codon_counter[codon_code] += 1
                 
                 for codon in self.w_dict.keys():
-                    if codon_counter[codon] > 0:
-                        product_w *= self.w_dict[codon] ** codon_counter[codon]
-                        n_codons += codon_counter[codon]
+                    if codon in ["TAA", "TGA", "TAG"]:
+                        continue
+                    else:
+                        if codon_counter[codon] > 0:
+                            product_w *= self.w_dict[codon] ** codon_counter[codon]
+                            n_codons += codon_counter[codon]
 
                 tAI = product_w ** (1/n_codons)
                 self.tAI_dict[gene] = tAI
